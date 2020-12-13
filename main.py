@@ -30,14 +30,15 @@ def read_log_file(log_file_path):
 
 # Step 1
 def get_activities(traces):
+    # percorre todas as atividades do log, gerando um conjunto ordenado de todas as atividades
     activities = SortedSet((activity for trace in traces.values() for activity in trace))
     print('Tl = {', ', '.join(activities), '}')
-
     return activities
 
 
 # Step 2
 def get_start_activities(traces):
+    # percorre todas as primeiras atividades dos traces, gerando um conjunto ordenado atividades de início
     start_activities = SortedSet(trace[0] for trace in traces.values())
     print('Ti = {', ', '.join(start_activities), '}')
 
@@ -46,6 +47,7 @@ def get_start_activities(traces):
 
 # Step 3
 def get_end_activities(traces):
+    # percorre todas as últimas atividades dos traces, gerando um conjunto ordenado das atividades de fim
     end_activities = SortedSet(trace[-1] for trace in traces.values())
     print('To = {', ', '.join(end_activities), '}')
 
@@ -262,6 +264,7 @@ def execute_alpha_miner(traces):
 
 
 def process_log(start_time, process_time, log_traces, activities):
+    # geração de arquivo com algumas variáveis uteis à análise da execução
     process_end = pt() - process_time
     log_size = len(log_traces)
     activities_size = len(activities)
@@ -283,5 +286,6 @@ if __name__ == '__main__':
     start_time = datetime.now()
     process_time = pt()
     log_traces = read_log_file('simulation_logs_simplified.csv')
+    # log_traces = read_log_file('aalst_log.csv')
     activities = execute_alpha_miner(log_traces)
     process_log(start_time, process_time, log_traces, activities)

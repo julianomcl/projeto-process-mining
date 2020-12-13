@@ -2,5 +2,5 @@
 venv
 *.png
 *.png.dot
+*.txt
 *.DS_Store
-process_log.txt
