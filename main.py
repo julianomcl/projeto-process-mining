@@ -1,4 +1,4 @@
-import datetime
+from time import process_time as pt
 import snakes.plugins
 from snakes.nets import PetriNet, Place, Transition, Value
 from sortedcontainers import SortedSet, SortedDict
@@ -292,7 +292,8 @@ def execute_alpha_miner(traces):
     generate_petrinet_png(petrinet)
 
 
-start_time = datetime.datetime.now()
-log_traces = read_log_file('simulation_logs_simplified.csv')
-execute_alpha_miner(log_traces)
-print('Execution duration time:', datetime.datetime.now() - start_time)
+if __name__ == '__main__':
+    start_time = t0_pt = pt()
+    log_traces = read_log_file('simulation_logs_simplified.csv')
+    execute_alpha_miner(log_traces)
+    print(f'Process Time: {pt() - start_time:.3f}ms')

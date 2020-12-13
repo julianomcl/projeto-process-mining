@@ -2,3 +2,4 @@
 venv
 *.png
 *.png.dot
+*.DS_Store
