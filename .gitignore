@@ -3,3 +3,4 @@ venv
 *.png
 *.png.dot
 *.DS_Store
+process_log.txt

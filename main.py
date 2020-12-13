@@ -1,4 +1,5 @@
 from time import process_time as pt
+from datetime import datetime
 import snakes.plugins
 from snakes.nets import PetriNet, Place, Transition, Value
 from sortedcontainers import SortedSet, SortedDict
@@ -29,34 +30,25 @@ def read_log_file(log_file_path):
 
 # Step 1
 def get_activities(traces):
-    activities = SortedSet()
-    for trace in traces.values():
-        for activity in trace:
-            activities.add(activity)
-
+    activities = SortedSet((activity for trace in traces.values() for activity in trace))
     print('Tl = {', ', '.join(activities), '}')
+
     return activities
 
 
 # Step 2
 def get_start_activities(traces):
-    start_activities = SortedSet()
-    for trace in traces.values():
-        start_activity = trace[0]
-        start_activities.add(start_activity)
-
+    start_activities = SortedSet(trace[0] for trace in traces.values())
     print('Ti = {', ', '.join(start_activities), '}')
+
     return start_activities
 
 
 # Step 3
 def get_end_activities(traces):
-    end_activities = SortedSet()
-    for trace in traces.values():
-        end_activity = trace[-1]
-        end_activities.add(end_activity)
-
+    end_activities = SortedSet(trace[-1] for trace in traces.values())
     print('To = {', ', '.join(end_activities), '}')
+
     return end_activities
 
 
@@ -87,10 +79,6 @@ def get_footprint(traces, activities):
                         relation = LEFT_CAUSALITY
             footprint[activity1][activity2] = relation
 
-    # print('Footprint:')
-    # print('#', '  '.join(footprint.keys()))
-    # for key, values in footprint.items():
-    #     print(key, ' '.join(values.values()))
     return footprint
 
 
@@ -110,30 +98,6 @@ def get_pairs(footprint):
 
     pairs = pairs_causality
 
-    # i = 0
-    # j = len(pairs_choices)
-    # while i < j:
-    #     set_i = (isinstance(pairs_choices[i], str) and [pairs_choices[i]] or pairs_choices[i])
-    #     print(set_i)
-    #     for pair in pairs_choices:
-    #         union = True
-    #         if len(SortedSet(set_i).intersection(SortedSet(pair))) != 0:
-    #             if isinstance(pair, str):
-    #                 pair = [pair]
-    #             for activity1 in pair:
-    #                 if not union:
-    #                     break
-    #                 for activity2 in set_i:
-    #                     if footprint[activity1][activity2] != CHOICES:
-    #                         union = False
-    #                         break
-    #             if union:
-    #                 new_pair = SortedSet(set_i) | SortedSet(pair)
-    #                 if tuple(new_pair) not in pairs_choices:
-    #                     pairs_choices.append(tuple(new_pair))
-    #                     j = j + 1
-    #
-    #     i = i + 1
 
     for pair_choices1 in pairs_choices:
         if isinstance(pair_choices1, str):
@@ -276,8 +240,11 @@ def generate_petrinet_png(petrinet, file_name='petrinet.png'):
         attr['label'] = ''
 
     petrinet.draw(file_name, place_attr=draw_place, trans_attr=draw_transition, arc_attr=draw_arc)
+    print(f'Generated PetriNet in file: {file_name}')
+
     petrinet.draw(file_name + '.dot', place_attr=draw_place, trans_attr=draw_transition, arc_attr=draw_arc)
-    print('Generated PetriNet in file:', file_name)
+    print(f'Generated PetriNet dot in file: {file_name}.dot')
+    print()
 
 
 def execute_alpha_miner(traces):
@@ -291,9 +258,30 @@ def execute_alpha_miner(traces):
     petrinet = get_petrinet(activities, places)
     generate_petrinet_png(petrinet)
 
+    return activities
+
+
+def process_log(start_time, process_time, log_traces, activities):
+    process_end = pt() - process_time
+    log_size = len(log_traces)
+    activities_size = len(activities)
+
+    log_messages = [f'Execution start: \t{start_time}',
+                    f'Total instances: \t{log_size} cases',
+                    f'Total activities:\t{activities_size}',
+                    f'Process Time:    \t{process_end:.3f}ms']
+
+    with open('process_log.txt', 'a') as file:
+        for message in log_messages:
+            print(message)
+            file.write(f'{message}\n')
+
+    file.close()
+
 
 if __name__ == '__main__':
-    start_time = t0_pt = pt()
+    start_time = datetime.now()
+    process_time = pt()
     log_traces = read_log_file('simulation_logs_simplified.csv')
-    execute_alpha_miner(log_traces)
-    print(f'Process Time: {pt() - start_time:.3f}ms')
+    activities = execute_alpha_miner(log_traces)
+    process_log(start_time, process_time, log_traces, activities)
