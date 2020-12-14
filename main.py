@@ -1,15 +1,17 @@
+import itertools
 from time import process_time as pt
 from datetime import datetime
 import snakes.plugins
 from snakes.nets import PetriNet, Place, Transition, Value
 from sortedcontainers import SortedSet, SortedDict
+
 snakes.plugins.load('gv', 'snakes.nets', 'nets')
 from nets import *
 
 RIGHT_CAUSALITY = '->'
 LEFT_CAUSALITY = '<-'
 PARALLEL = '||'
-CHOICES = '# '
+CHOICES = '#'
 
 
 def read_log_file(log_file_path):
@@ -26,6 +28,22 @@ def read_log_file(log_file_path):
                 log_traces[case_id].append(activity)
 
         return log_traces
+
+
+def check_set(set_a, pairs):
+    for activity1 in set_a:
+        for activity2 in set_a:
+            if (activity1, activity2) not in pairs:
+                return False
+    return True
+
+
+def check_outsets(set_a, set_b, pairs):
+    for activity1 in set_a:
+        for activity2 in set_b:
+            if (activity1, activity2) not in pairs:
+                return False
+    return True
 
 
 # Step 1
@@ -87,61 +105,28 @@ def get_footprint(traces, activities):
 # Step 4-2
 def get_pairs(footprint):
     pairs_causality = set()
-    pairs_choices = []
+    pairs_not_causality = set()
     for activity1, relations in footprint.items():
         for activity2, relation in relations.items():
             if relation == RIGHT_CAUSALITY:
                 pairs_causality.add((activity1, activity2))
             if relation == CHOICES:
-                if activity1 != activity2:
-                    pairs_choices.append((activity1, activity2))
-                else:
-                    pairs_choices.append((activity1))
+                pairs_not_causality.add((activity1, activity2))
 
-    pairs = pairs_causality
+    pairs = set()
+    subsets = set()
+    activities = tuple((activity for activity in footprint.keys()))
 
-
-    for pair_choices1 in pairs_choices:
-        if isinstance(pair_choices1, str):
-            pair_choices1 = [pair_choices1]
-        for pair_choices2 in pairs_choices:
-            if isinstance(pair_choices2, str):
-                pair_choices2 = [pair_choices2]
-            relation_between_pair = None
-            make_pair = True
-            intersection = SortedSet(pair_choices1).intersection(pair_choices2)
-            pair_choices2 = SortedSet(pair_choices2)
-            if len(intersection) != 0:
-                for term in intersection:
-                    pair_choices2.discard(term)
-
-            if len(pair_choices2) == 0:
-                continue
-            pair_choices2 = tuple(pair_choices2)
-
-            for activity1 in pair_choices1:
-                if not make_pair:
-                    break
-                for activity2 in pair_choices2:
-                    relation = footprint[activity1][activity2]
-                    if relation_between_pair is not None and relation_between_pair != relation:
-                        make_pair = False
-                        break
-                    else:
-                        relation_between_pair = relation
-                    if relation != RIGHT_CAUSALITY:
-                        make_pair = False
-                        break
-            if make_pair:
-                if relation_between_pair == RIGHT_CAUSALITY:
-                    if len(pair_choices1) == 1:
-                        pair_choices1 = pair_choices1[0]
-                    if len(pair_choices2) == 1:
-                        pair_choices2 = pair_choices2[0]
-                    new_pair = (pair_choices1, pair_choices2)
-                else:
-                    new_pair = (pair_choices2, pair_choices1)
-                pairs.add(new_pair)
+    range_n = min(4, len(activities))
+    for i in range(1, range_n):
+        for combination in itertools.combinations(activities, i):
+            subsets.add(combination)
+    for set_a in subsets:
+        check_a = check_set(set_a, pairs_not_causality)
+        for set_b in subsets:
+            check_b = check_set(set_b, pairs_not_causality)
+            if check_a and check_b and check_outsets(set_a, set_b, pairs_causality):
+                pairs.add((set_a, set_b))
 
     print('Xl =', pairs)
     return pairs
@@ -182,12 +167,12 @@ def get_maximal_pairs(pairs):
 
 # Step 6
 def get_places(start_activities, end_activities, maximal_pairs):
-    places = [('P0', start_activities)]
+    places = [('Pi', start_activities)]
     place_n = 1
     for pair in maximal_pairs:
         places.append((pair[0], 'P' + str(place_n), pair[1]))
         place_n += 1
-    places.append((end_activities, 'P' + str(place_n)))
+    places.append((end_activities, 'Po'))
 
     print('Pl = {', places, '}')
     return places
@@ -232,6 +217,12 @@ def get_petrinet(activities, places):
 
 def generate_petrinet_png(petrinet, file_name='petrinet.png'):
     def draw_place(place, attr):
+        if attr['label'].find('Pi') >= 0:
+            attr['color'] = '#FF0000'
+            attr['width'] = 0.6
+        if attr['label'].find('Po') >= 0:
+            attr['color'] = '#00FF00'
+            attr['width'] = 0.6
         attr['shape'] = 'circle'
         attr['label'] = ''
 
@@ -249,7 +240,7 @@ def generate_petrinet_png(petrinet, file_name='petrinet.png'):
     print()
 
 
-def execute_alpha_miner(traces):
+def execute_alpha_miner(traces, file_name='petrinet.png'):
     activities = get_activities(traces)
     start_activities = get_start_activities(traces)
     end_activities = get_end_activities(traces)
@@ -258,7 +249,7 @@ def execute_alpha_miner(traces):
     maximal_pairs = get_maximal_pairs(pairs)
     places = get_places(start_activities, end_activities, maximal_pairs)
     petrinet = get_petrinet(activities, places)
-    generate_petrinet_png(petrinet)
+    generate_petrinet_png(petrinet, file_name)
 
     return activities
 
