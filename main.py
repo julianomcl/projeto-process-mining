@@ -134,32 +134,32 @@ def get_pairs(footprint):
 
 # Step 5
 def get_maximal_pairs(pairs):
-    pos1 = 0
+    i = 0
     pair_appended = []
     maximal_pairs = []
-    for pair1 in pairs:
+    for pair_a in pairs:
         append = True
-        flat_pair1 = []
-        for s in pair1:
-            for e in s:
-                flat_pair1.append(e)
-        pos2 = 0
-        for pair2 in pairs:
-            if pos1 != pos2:
-                flat_pair2 = []
-                for s in pair2:
-                    for e in s:
-                        flat_pair2.append(e)
+        flat_pair_a = []
+        for pair_sets in pair_a:
+            for pair_element in pair_sets:
+                flat_pair_a.append(pair_element)
+        j = 0
+        for pair_b in pairs:
+            if i != j:
+                flat_pair_b = []
+                for pair_sets in pair_b:
+                    for pair_element in pair_sets:
+                        flat_pair_b.append(pair_element)
 
-                if SortedSet(flat_pair1).issubset(flat_pair2) and SortedSet(flat_pair1) != SortedSet(flat_pair2):
+                if SortedSet(flat_pair_a).issubset(flat_pair_b) and SortedSet(flat_pair_a) != SortedSet(flat_pair_b):
                     append = False
-            pos2 = pos2 + 1
+            j = j + 1
 
         if append:
-            if SortedSet(flat_pair1) not in pair_appended:
-                maximal_pairs.append(pair1)
-                pair_appended.append(SortedSet(flat_pair1))
-        pos1 = pos1 + 1
+            if SortedSet(flat_pair_a) not in pair_appended:
+                maximal_pairs.append(pair_a)
+                pair_appended.append(SortedSet(flat_pair_a))
+        i = i + 1
 
     print('Yl = {', maximal_pairs, '}')
     return maximal_pairs
