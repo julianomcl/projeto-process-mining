@@ -1,4 +1,5 @@
 import itertools
+import sys
 from time import process_time as pt
 from datetime import datetime
 import snakes.plugins
@@ -19,13 +20,22 @@ def read_log_file(log_file_path):
         log_traces = SortedDict()
         content = log_file.read()
         lines = content.split('\n')
+        case_id, activity, *first_line_data = lines[0].split(',')
+        try:
+            lifecycle_index = first_line_data.index('lifecycle:transition')
+        except ValueError:
+            lifecycle_index = -1
         for line in lines[1:]:
             if line != '':
                 case_id, activity, *event_data = line.split(',')
                 if case_id not in log_traces:
                     log_traces[case_id] = []
 
-                log_traces[case_id].append(activity)
+                if lifecycle_index > -1:
+                    if event_data[lifecycle_index] == 'assign':
+                        log_traces[case_id].append(activity)
+                else:
+                    log_traces[case_id].append(activity)
 
         return log_traces
 
@@ -276,7 +286,12 @@ def process_log(start_time, process_time, log_traces, activities):
 if __name__ == '__main__':
     start_time = datetime.now()
     process_time = pt()
-    log_traces = read_log_file('simulation_logs_simplified.csv')
-    # log_traces = read_log_file('aalst_log.csv')
-    activities = execute_alpha_miner(log_traces)
+    log_file_path = 'simulation_logs.csv'
+    petrinet_png_file = 'petrinet.png'
+    if len(sys.argv) > 1:
+        log_file_path = sys.argv[1]
+    if len(sys.argv) > 2:
+        petrinet_png_file = sys.argv[2]
+    log_traces = read_log_file(log_file_path)
+    activities = execute_alpha_miner(log_traces, petrinet_png_file)
     process_log(start_time, process_time, log_traces, activities)
