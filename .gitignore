@@ -4,3 +4,4 @@ venv
 *.png.dot
 *.txt
 *.DS_Store
+!requirements.txt
